@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>External Tool</Name>
+    <Assembly>FocchiStartup.dll</Assembly>
+    <ClientId>8eb4b473-46ec-4707-8500-fd95d49bc781</ClientId>
+    <FullClassName>FocchiStartup.App</FullClassName>
+    <VendorId>ADSK</VendorId>
+    <VendorDescription>Autodesk, www.autodesk.com</VendorDescription>
+  </AddIn>
+  <AddIn Type="Command">
+    <Assembly>FocchiStartup.dll</Assembly>
+    <ClientId>f25c3bf4-a57d-49d9-bad2-c7851955fafd</ClientId>
+    <FullClassName>FocchiStartup.Command</FullClassName>
+    <Text>Command</Text>
+    <Description>""</Description>
+    <VisibilityMode>AlwaysVisible</VisibilityMode>
+    <VendorId>ADSK</VendorId>
+    <VendorDescription>Autodesk, www.autodesk.com</VendorDescription>
+  </AddIn>
+</RevitAddIns>

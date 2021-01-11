@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customUI onLoad="ribbonLoaded" xmlns="http://schemas.microsoft.com/office/2006/01/customui">
+  <ribbon startFromScratch="false">
+    <tabs>
+     <tab id="MyCustomTab" label="Panel Take Off" insertBeforeMso="TabHome">
+  		  <group id="customGroup1" label="PanelTakeOff 4.0.1 Square meter rounded check">
+		     	  <button id="customButton1" label="Save"       size="large" onAction="save" image="SuperSave" />
+		        <button id="customButton2" label="Erase for new Calc"         size="large" onAction="NewCalculation" image="eraser" />	       				 	 <button id="customButton3" label="Rename Calculation"         size="large" onAction="RenameCalculation" image="Borsa" />
+		 	 <button id="customButton4" label="View/cover notes"         size="large" onAction="SwitchNotes" image="Notes" />
+	 		 <button id="customButton5" label="Setup"                      size="large" onAction="RunSetup" image="FOCCHI" />	
+			  <button id="customButton6" label="Basic Models"               size="large" onAction="BasicModels" image="Models" />	
+  		  </group>
+  		  <group id="customGroup2" label="Jump To Sector">
+		     	  <button id="customButton7" label="North"           size="large" onAction="JumpToNorth" image="Nord" />
+		        <button id="customButton8" label="East"            size="large" onAction="JumpToEast" image="est" /> 
+		        <button id="customButton9" label="South"           size="large" onAction="JumpToSouth" image="sud" />	       				
+            	 <button id="customButton10" label="West"             size="large" onAction="JumpToWest" image="Ovest" />
+	 		 <button id="customButton11" label="Roof"             size="large" onAction="JumpToRoof" image="roof" />	
+			  <button id="customButton12" label="Atrium"          size="large" onAction="JumpToAtrium" image="atrium" />	
+		 	 <button id="customButton13" label="F1"               size="large" onAction="JumpToF1" image="F1" />
+	 		 <button id="customButton14" label="F2"               size="large" onAction="JumpToF2" image="F2" />	
+			  <button id="customButton15" label="Automatic High"  size="large" onAction="JumpToAutomatic" image="high" />	
+  		  </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>
