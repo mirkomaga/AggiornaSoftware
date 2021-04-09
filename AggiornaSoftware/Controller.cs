@@ -1,119 +1,282 @@
-﻿using Microsoft.WindowsAPICodePack.Dialogs;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using Microsoft.WindowsAPICodePack.Dialogs;
+using System.Security.AccessControl;
+using System.Net.NetworkInformation;
 
 namespace AggiornaSoftware
 {
     class Controller
     {
+        
+        private static string pathAutodesk = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData).ToString() + "\\Autodesk";
+        private static string pathProgetti = @"C:\_Progetti\";
+        private static string pathRilascio = @"\bin\Release";
+        private static List<string> nomeProgetti = new List<string>()
+        {
+            "FocchiStartup",
+            "ProjectEdit",
+            "focchiBatch",
+            "focchiDesign",
+            "focchiDraw"
+        };
+
         public static string pathJson = @"C:\Users\config.json";
-        //public static string pathLocal = @"C:\Users\edgesuser\AppData\Roaming\Autodesk\Revit\Addins\2020\FocchiStartup\";
         public static string AutocadPathLocal = "";
         public static string RevitPathLocal = "";
         public static string pathServer = @"X:\mirko\DatiAggiornati\";
         //public static string[] whiteListExtension = new string[] { ".dll", ".exe", ".pdb" };
-        public static string[] whiteListFile = new string[] { "focchiCoreSupport.pdb", 
-            "focchiCoreSupport.dll", 
-            "focchiProjectEditLibrary.pdb", 
-            "focchiProjectEditLibrary.dll",
-            "RevitCoreSupport.pdb",
-            "RevitCoreSupport.dll",
-            "focchiProjectEdit.pdb",
+        public static string[] whiteListFile = new string[] {
             "focchiProjectEdit.exe",
-            "FocchiStartup.pdb",
             "FocchiStartup.dll",
             "focchiBatch.dll",
-            "focchiDesign.dll","System.Memory.dll","System.Numerics.Vectors.dll",
-            "focchiDraw.dll"
-
+            "focchiDesign.dll",
+            "focchiDraw.dll",
+            "EdgeAutocadPlugins.dll"
         };
+
+        internal static Dictionary<FileInfo, FileInfo> cercoSoluzioniRilasciate()
+        {
+            List<string> filesCompilati = new List<string>();
+
+            foreach (string s in nomeProgetti)
+            {
+                string pathComposta = pathProgetti + s + pathRilascio;
+
+                try
+                {
+                    string[] files = Directory.GetFileSystemEntries(pathComposta, "*");
+
+                    foreach (string f in files)
+                    {
+
+                        string nomeFile = Path.GetFileName(f);
+
+                        if (whiteListFile.Contains(nomeFile))
+                        {
+                            filesCompilati.Add(f);
+                        }
+                    }
+                }
+                catch { }
+
+            }
+
+            string[] filesServer = getListFolder(pathServer);
+
+            Dictionary<FileInfo, FileInfo> data = new Dictionary<FileInfo, FileInfo>();
+
+            foreach (string fiCompilato in filesCompilati.ToArray()) 
+            {
+                FileInfo fiC = new FileInfo(fiCompilato);
+
+                FileInfo fiS = new FileInfo(filesServer.Where(fi => fi.Contains(fiC.Name)).FirstOrDefault());
+
+                if(fiS != null)
+                {
+                    if(fiC.LastWriteTime > fiS.LastWriteTime)
+                    {
+                        data.Add(fiC, fiS);
+                    }
+                }
+            }
+
+            return data;
+        }
+
+        // Restituisce fonte/server, destinazione/locale
+        internal static Dictionary<FileInfo, FileInfo> CheckPluginStatus(string nomePlugin, string percorsoLocale)
+        {
+            Dictionary<FileInfo, FileInfo> assoc = new Dictionary<FileInfo, FileInfo>();
+
+            if(destinazioneInstallazionePlugins.ContainsKey(nomePlugin) && fonteInstallazionePlugins.ContainsKey(nomePlugin))
+            {
+                List<string> destPath = Directory.GetFiles(percorsoLocale, "*", SearchOption.AllDirectories).ToList();
+
+                string pathFonte = fonteInstallazionePlugins[nomePlugin];
+
+                List<string> fontePath = Directory.GetFiles(pathFonte, "*", SearchOption.AllDirectories).ToList();
+
+                foreach (string file in fontePath)
+                {
+                    string fonteFname = Path.GetFileName(file);
+
+                    if (whiteListFile.Contains(fonteFname))
+                    {
+                        FileInfo fiFonte = new FileInfo(file);
+
+                        FileInfo fiDest = new FileInfo(destPath.Where(f => f.Contains(fiFonte.Name)).FirstOrDefault());
+
+                        Console.WriteLine(fiFonte.Name);
+
+                        if(fiFonte.LastWriteTime > fiDest.LastWriteTime)
+                        {
+                            assoc.Add(fiFonte, fiDest);
+                        }
+                    }
+                }
+            }
+
+            return assoc;
+        }
+
+        public static string[] namePlugins = new string[]
+        {
+            "FocchiStartup",
+            "focchiBatch.bundle",
+            "focchiDesign.bundle",
+            "focchiDraw.bundle",
+            "EdgePlugins.bundle"
+        };
+
+        public static Dictionary<string,string> destinazioneInstallazionePlugins = new Dictionary<string, string>()
+        {
+            { "FocchiStartup", @"\Autodesk\Revit\Addins\2020"},
+            { "focchiBatch.bundle", @"\Autodesk\ApplicationPlugins"},
+            { "focchiDesign.bundle", @"\Autodesk\ApplicationPlugins"},
+            { "focchiDraw.bundle", @"\Autodesk\ApplicationPlugins"},
+            { "EdgePlugins.bundle", @"\Autodesk\ApplicationPlugins"}
+        };
+
+        public static Dictionary<string, string> fonteInstallazionePlugins = new Dictionary<string, string>()
+        {
+            { "FocchiStartup", @"X:\mirko\DatiAggiornati\Revit\FocchiStartup"},
+            { "focchiBatch.bundle", @"X:\mirko\DatiAggiornati\Autocad\focchiBatch.bundle"},
+            { "focchiDesign.bundle", @"X:\mirko\DatiAggiornati\Autocad\focchiDesign.bundle"},
+            { "focchiDraw.bundle", @"X:\mirko\DatiAggiornati\Autocad\focchiDraw.bundle"},
+            { "EdgePlugins.bundle", @"X:\mirko\DatiAggiornati\Autocad\EdgePlugins.bundle"}
+        };
+
+        internal static bool sostituiscoFile(FileInfo fiServer, FileInfo fiLocal)
+        {
+            try
+            {
+                File.Copy(Path.Combine(Path.GetDirectoryName(fiServer.FullName), fiServer.Name), Path.Combine(Path.GetDirectoryName(fiLocal.FullName), fiLocal.Name), true);
+                return true;
+            }
+            catch (System.IO.IOException e)
+            {
+                return false;
+            }
+        }
+
         public static DateTime lastUpdateLocal;
         public static DateTime lastUpdateServer;
         public static List<InfoFile> filesToRefresh = new List<InfoFile>();
 
-        public static void refresh_OLDDDDDD()
+
+        public static List<Plugin> findPath(List<Plugin> dataServer)
         {
-            try
+            string pathAutodesk = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData).ToString() + "\\Autodesk";
+
+            List<Plugin> result = new List<Plugin>();
+
+            if (Directory.Exists(pathAutodesk))
             {
-                LoadJson();
+                foreach(string namePlugin in namePlugins)
+                {
+                    IEnumerable<string> dirs = Directory.GetDirectories(pathAutodesk, namePlugin, SearchOption.AllDirectories);
+                    
+                    Plugin pl;
+                    string path;
+
+                    switch (namePlugin)
+                    {
+                        case "FocchiStartup":
+                            pl = dataServer.Find(f => f.nomePlugin == namePlugin);
+
+                            path = dirs.Where(d => d.Contains("2020")).FirstOrDefault();
+
+                            pl.pathRiferimentoLocale = path;
+
+                            result.Add(pl);
+                            break;
+                        case "ProjectEdit":
+                            pl = dataServer.Find(f => f.nomePlugin == namePlugin);
+
+                            dirs = Directory.GetDirectories(pathAutodesk, "FocchiStartup", SearchOption.AllDirectories);
+                            path = dirs.Where(d => d.Contains("2020")).FirstOrDefault();
+
+                            pl.pathRiferimentoLocale = path;
+
+                            result.Add(pl);
+                            break;
+                        case "focchiBatch.bundle":case "focchiDraw.bundle":case "focchiDesign.bundle":
+                            pl = dataServer.Find(f => f.nomePlugin == namePlugin);
+
+                            path = dirs.FirstOrDefault();
+
+                            pl.pathRiferimentoLocale = path;
+
+                            result.Add(pl);
+                            break;
+                    }
+                }
             }
-            catch
+
+            return result;
+        }
+
+        
+        internal static void DisinstallaPlugins(Dictionary<string, string> dictionaries)
+        {
+            foreach (KeyValuePair<string, string> v in dictionaries)
             {
-                writeJson("", null);
-            }
+                string nomePlugin = v.Key;
+                string pathLocale = v.Value;
 
+                if (!string.IsNullOrEmpty(pathLocale))
+                {
+                    DirectoryInfo di = new DirectoryInfo(pathLocale);
 
-            JObject pathLocalTmp = LoadJson();
-
-
-            if (!string.IsNullOrEmpty((string)pathLocalTmp["localPath"]))
-            {
-                pathLocalTmp = LoadJson();
-
-                // TODO Refresho
-                //pathLocal = (string)pathLocalTmp["localPath"];
-
-                //string[] filesLocal = getListFolder(pathLocal);
-
-                //string[] filesServer = getListFolder(pathServer);
-
-                //filesToRefresh = eseguoControlloDate(filesLocal, filesServer);
+                    foreach (FileInfo file in di.EnumerateFiles())
+                    {
+                        file.Delete();
+                    }
+                    foreach (DirectoryInfo dir in di.EnumerateDirectories())
+                    {
+                        dir.Delete(true);
+                    }
+                    Directory.Delete(pathLocale);
+                }
             }
         }
 
-        public static void refresh()
+        internal static void InstallaPlugins(Dictionary<string, string> dictionaries)
         {
-            List<Plugin> dataServer = analizzoServer();
-            filesToRefresh = new List<InfoFile>();
-
-            try
+            foreach (KeyValuePair<string, string> v in dictionaries)
             {
-                LoadJson();
-            }
-            catch
-            {
-                writeJson("", null);
-            }
+                string nomePlugin = v.Key;
+                string pathLocale = v.Value;
 
+                if (string.IsNullOrEmpty(pathLocale))
+                {
+                    if (destinazioneInstallazionePlugins.ContainsKey(nomePlugin))
+                    {
+                        string pathInstallazione = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData).ToString() + destinazioneInstallazionePlugins[nomePlugin] + "\\" +nomePlugin;
 
-            JObject json = LoadJson();
+                        if (fonteInstallazionePlugins.ContainsKey(nomePlugin))
+                        {
+                            string pathFonte = fonteInstallazionePlugins[nomePlugin];
 
-            if (!string.IsNullOrEmpty((string)json["RevitPathLocal"]))
-            {
-                RevitPathLocal = (string)json["RevitPathLocal"];
-                aggiornoListaFile("Revit", dataServer, RevitPathLocal);
-            }
-            else
-            {
-                Console.WriteLine("Non esiste path revit");
-            }
+                            Directory.CreateDirectory(pathInstallazione);
 
-            if (!string.IsNullOrEmpty((string)json["AutocadPathLocal"]))
-            {
-                AutocadPathLocal = (string)json["AutocadPathLocal"];
-                aggiornoListaFile("Autocad", dataServer, AutocadPathLocal);
-            }
-            else
-            {
-                Console.WriteLine("Non esiste path autocad");
-            }
+                            //Now Create all of the directories
+                            foreach (string dirPath in Directory.GetDirectories(pathFonte, "*",
+                                SearchOption.AllDirectories))
+                                Directory.CreateDirectory(dirPath.Replace(pathFonte, pathInstallazione));
 
-        }
-
-        public static void aggiornoListaFile(string programmaName, List<Plugin> dataServer, string pathLocal)
-        {
-            List<Plugin> programmaPlugins = dataServer.FindAll(p => p.nomeProgramma == programmaName);
-
-            foreach (Plugin p in programmaPlugins)
-            {
-                string[] filesServer = getListFolder(p.pathRiferimentoServer);
-                string[] filesLocal = getListFolder(pathLocal+"\\"+p.nomePlugin);
-                filesToRefresh.AddRange(eseguoControlloDate(filesLocal, filesServer));
+                            //Copy all the files & Replaces any files with the same name
+                            foreach (string newPath in Directory.GetFiles(pathFonte, "*.*",
+                                SearchOption.AllDirectories))
+                                File.Copy(newPath, newPath.Replace(pathFonte, pathInstallazione), true);
+                        }                            
+                    }
+                }
             }
         }
 
@@ -171,37 +334,59 @@ namespace AggiornaSoftware
             }
         }
 
-        public static void replaceData(ListView form, ToolStripProgressBar pb)
-        {
+        //public static void replaceData(ListView form, ToolStripProgressBar pb)
+        //{
+        //    ListView.CheckedListViewItemCollection checkedItems = form.CheckedItems;
+        //    List<Controller.InfoFile> filesList = new List<Controller.InfoFile>();
+        //    pb.Value = 0;
+        //    pb.Maximum = checkedItems.Count;
+        //    foreach (ListViewItem i in checkedItems)
+        //    {
+        //        Controller.InfoFile fi = Controller.filesToRefresh[Int32.Parse(i.Tag.ToString())];
+        //        try
+        //        {
+        //            File.Copy(Path.Combine(Path.GetDirectoryName(fi.path), fi.nomeFile), Path.Combine(Path.GetDirectoryName(fi.pathLocale), fi.nomeFile), true);
+        //            Console.WriteLine("Sostituisco " + fi.nomeFile);
+        //            i.SubItems[3].Text = "Completed";
+        //            //i.Remove();
+        //        }
+        //        catch (System.IO.IOException e)
+        //        {
+        //            MessageBox.Show("Chiudere is programmi");
+        //            i.SubItems[3].Text = "Failed";
+        //            break;
+        //        }
+        //        pb.Value = pb.Value + 1;
+        //    }
+        //    form.Refresh();
+        //}
 
-            ListView.CheckedListViewItemCollection checkedItems = form.CheckedItems;
-
-            List<Controller.InfoFile> filesList = new List<Controller.InfoFile>();
-
-            pb.Value = 0;
-            pb.Maximum = checkedItems.Count;
-            foreach (ListViewItem i in checkedItems)
-            {
-                Controller.InfoFile fi = Controller.filesToRefresh[Int32.Parse(i.Tag.ToString())];
-
-                try
-                {
-                    //File.Copy(Path.Combine(Path.GetDirectoryName(fi.path), fi.nomeFile), Path.Combine(Path.GetDirectoryName(fi.pathLocale), fi.nomeFile), true);
-                    Console.WriteLine("Sostituisco " + fi.nomeFile);
-                    i.SubItems[3].Text = "Completed";
-                    //i.Remove();
-                }
-                catch (System.IO.IOException e)
-                {
-                    MessageBox.Show("Chiudere is programmi");
-                    i.SubItems[3].Text = "Failed";
-                    break;
-                }
-
-                pb.Value = pb.Value + 1;
-            }
-            form.Refresh();
-        }
+        //public static void replaceData(ListView form, ToolStripProgressBar pb, List<InfoFile> listIF)
+        //{
+        //    ListView.CheckedListViewItemCollection checkedItems = form.CheckedItems;
+        //    List<Controller.InfoFile> filesList = new List<Controller.InfoFile>();
+        //    pb.Value = 0;
+        //    pb.Maximum = checkedItems.Count;
+        //    foreach (ListViewItem i in checkedItems)
+        //    {
+        //        Controller.InfoFile fi = listIF[Int32.Parse(i.Tag.ToString())];
+        //        try
+        //        {
+        //            File.Copy(Path.Combine(Path.GetDirectoryName(fi.path), fi.nomeFile), Path.Combine(Path.GetDirectoryName(fi.pathLocale), fi.nomeFile), true);
+        //            Console.WriteLine("Sostituisco " + fi.nomeFile);
+        //            i.SubItems[3].Text = "Completed";
+        //            //i.Remove();
+        //        }
+        //        catch (System.IO.IOException e)
+        //        {
+        //            MessageBox.Show("Chiudere is programmi");
+        //            i.SubItems[3].Text = "Failed";
+        //            break;
+        //        }
+        //        pb.Value = pb.Value + 1;
+        //    }
+        //    form.Refresh();
+        //}
 
         public static JObject LoadJson()
         {
@@ -270,16 +455,54 @@ namespace AggiornaSoftware
 
                 if (whiteListFile.Contains(name))
                 {
+
                     DateTime dt = File.GetLastWriteTime(file);
                     
                     string ext = Path.GetExtension(file);
 
                     results.Add(new InfoFile(dt, ext, name, file, null));
+
                 }
             }
             return results;
         }
+        
+        
+        
+        
+        
+        // Controllo se i plugin sono installati o meno nella path di autocad
+        public static Dictionary<string, string> controlloStatoSoftware()
+        {
+            List<string> paths = Directory.GetDirectories(pathAutodesk, "*", SearchOption.AllDirectories).ToList();
 
+            Dictionary<string, string> pluginsLocale = new Dictionary<string, string>();
+
+            foreach (string pn in namePlugins)
+            {
+                if (paths.Where(f => f.Contains(pn)).Count() != 0) {
+                    if (pn == "FocchiStartup") 
+                    {
+                        string path = paths.Where(f => f.Contains(pn)).Where(f => f.Contains("2020")).FirstOrDefault();
+                        pluginsLocale.Add(pn, path);
+
+                    }
+                    else
+                    {
+                        pluginsLocale.Add(pn, paths.Where(f => f.Contains(pn)).FirstOrDefault()); 
+                    }
+
+                }
+                else { pluginsLocale.Add(pn, null); }
+            }
+
+            return pluginsLocale;
+        }
+
+        
+        
+        
+        
         public struct InfoFile
         {
             public InfoFile(DateTime dataLastEdit_, string extension_, string nomeFile_, string path_, string? pathLocale_)
