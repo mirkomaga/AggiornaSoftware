@@ -109,7 +109,11 @@ namespace AggiornaSoftware
                     {
                         FileInfo fiFonte = new FileInfo(file);
 
-                        FileInfo fiDest = new FileInfo(destPath.Where(f => f.Contains(fiFonte.Name)).FirstOrDefault());
+                        IEnumerable<string> filesDest = destPath.Where(f => f.Contains(fiFonte.Name));
+
+                        if (filesDest.Count() == 0) continue;
+
+                        FileInfo fiDest = new FileInfo(filesDest.First());
 
                         Console.WriteLine(fiFonte.Name);
 
@@ -222,7 +226,7 @@ namespace AggiornaSoftware
         }
 
         
-        internal static void DisinstallaPlugins(Dictionary<string, string> dictionaries)
+        internal static void DisinstallaPlugins(Dictionary<string, string> dictionaries, csDatabase db)
         {
             foreach (KeyValuePair<string, string> v in dictionaries)
             {
@@ -235,18 +239,60 @@ namespace AggiornaSoftware
 
                     foreach (FileInfo file in di.EnumerateFiles())
                     {
-                        file.Delete();
+                        try
+                        {
+                            file.Delete();
+                        }
+                        catch { }
                     }
                     foreach (DirectoryInfo dir in di.EnumerateDirectories())
                     {
-                        dir.Delete(true);
+                        try
+                        {
+                            dir.Delete(true);
+                        }
+                        catch { }
                     }
-                    Directory.Delete(pathLocale);
+
+                    try
+                    {
+                        Directory.Delete(pathLocale);
+                    }
+                    catch { }
+                    finally
+                    {
+                        if (!Directory.Exists(pathLocale))
+                        {
+                            // ? Plugin disinstallato correttamente
+                            db.addRecordToUsernameAggiornamento(new csOperazione()
+                            {
+                                m_Utente = Environment.UserName,
+                                m_Software = nomePlugin,
+                                m_DataSoftware = DateTime.Now,
+                                m_Status = true,
+                                m_Action = "Eliminazione"
+                            });
+                        }
+                        else
+                        {
+                            // ? Plugin non disinstallato
+                            db.addRecordToUsernameAggiornamento(new csOperazione()
+                            {
+                                m_Utente = Environment.UserName,
+                                m_Software = nomePlugin,
+                                m_DataSoftware = DateTime.Now,
+                                m_Status = false,
+                                m_Action = "Eliminazione"
+                            });
+                        }
+                    }
+
+
                 }
             }
         }
 
-        internal static void InstallaPlugins(Dictionary<string, string> dictionaries)
+        internal static void InstallaPlugins(Dictionary<string, string> dictionaries, csDatabase db)
         {
             foreach (KeyValuePair<string, string> v in dictionaries)
             {
@@ -268,13 +314,45 @@ namespace AggiornaSoftware
                             //Now Create all of the directories
                             foreach (string dirPath in Directory.GetDirectories(pathFonte, "*",
                                 SearchOption.AllDirectories))
+                            {
                                 Directory.CreateDirectory(dirPath.Replace(pathFonte, pathInstallazione));
+                                Application.DoEvents();
+                            }
 
                             //Copy all the files & Replaces any files with the same name
                             foreach (string newPath in Directory.GetFiles(pathFonte, "*.*",
                                 SearchOption.AllDirectories))
+                            {
                                 File.Copy(newPath, newPath.Replace(pathFonte, pathInstallazione), true);
-                        }                            
+                                Application.DoEvents();
+                            }
+                        }
+
+                        if (Directory.Exists(pathInstallazione))
+                        {
+                            // ? installato
+                            db.addRecordToUsernameAggiornamento(new csOperazione()
+                             {
+                                 m_Utente = Environment.UserName,
+                                 m_Software = nomePlugin,
+                                 m_DataSoftware = DateTime.Now,
+                                 m_Status = true,
+                                 m_Action = "installazione"
+                             });
+                        }
+                        else
+                        {
+                            // ? non installato
+                            db.addRecordToUsernameAggiornamento(new csOperazione()
+                             {
+                                 m_Utente = Environment.UserName,
+                                 m_Software = nomePlugin,
+                                 m_DataSoftware = DateTime.Now,
+                                 m_Status = false,
+                                 m_Action = "installazione"
+                             });
+                        }
+
                     }
                 }
             }

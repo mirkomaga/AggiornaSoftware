@@ -79,6 +79,9 @@
             // 
             // groupBox3
             // 
+            this.groupBox3.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox3.Controls.Add(this.reportFiles);
             this.groupBox3.Location = new System.Drawing.Point(12, 157);
             this.groupBox3.Name = "groupBox3";
@@ -133,7 +136,7 @@
             this.toolStripProgressBar1});
             this.toolStrip1.Location = new System.Drawing.Point(0, 564);
             this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(735, 25);
+            this.toolStrip1.Size = new System.Drawing.Size(717, 25);
             this.toolStrip1.TabIndex = 8;
             this.toolStrip1.Text = "toolStrip1";
             // 
@@ -164,6 +167,8 @@
             // 
             // gbSoftware
             // 
+            this.gbSoftware.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.gbSoftware.Controls.Add(this.lvSoftware);
             this.gbSoftware.Location = new System.Drawing.Point(12, 12);
             this.gbSoftware.Name = "gbSoftware";
@@ -226,6 +231,8 @@
             // 
             // groupBox1
             // 
+            this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox1.Controls.Add(this.strButton);
             this.groupBox1.Controls.Add(this.button2);
             this.groupBox1.Controls.Add(this.btnDisinstall);
@@ -240,6 +247,8 @@
             // 
             // groupBox2
             // 
+            this.groupBox2.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox2.Controls.Add(this.btnRefreshSoluzione);
             this.groupBox2.Location = new System.Drawing.Point(12, 485);
             this.groupBox2.Name = "groupBox2";
@@ -252,15 +261,17 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(735, 589);
+            this.ClientSize = new System.Drawing.Size(717, 589);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.gbSoftware);
             this.Controls.Add(this.toolStrip1);
             this.Controls.Add(this.groupBox3);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.MinimumSize = new System.Drawing.Size(733, 628);
             this.Name = "RefreshForm";
             this.Text = "Aggiorna Plugin";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.RefreshForm_FormClosing);
             this.Load += new System.EventHandler(this.RefreshForm_Load);
             this.groupBox3.ResumeLayout(false);
             this.toolStrip1.ResumeLayout(false);

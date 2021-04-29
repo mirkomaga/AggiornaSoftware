@@ -7,22 +7,45 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace AggiornaSoftware
 {
     public partial class RefreshForm : Form
-    {
+    {   
+        // ? Database
+        csDatabase m_db;
+
         RegistryKey rkApp = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
         bool statusStrtup = false;
 
+        private Thread workerThread = null;
+
         public RefreshForm()
         {
+            // ? apre connessione
+            m_db = new csDatabase("aggiornamentoPlugins");
+
             InitializeComponent();
 
             refreshButtonStartup();
+
+            workerThread = new Thread(frmLoadingShowing);
+            workerThread.Start();
+
+            // ? Riferimenti ai plugin
+            Dictionary<string, string> data = Controller.controlloStatoSoftware();
+
+
+            // ? Operazione automatica allo startup
+            Controller.DisinstallaPlugins(Controller.controlloStatoSoftware(), m_db);
+            Controller.InstallaPlugins(Controller.controlloStatoSoftware(), m_db);
+
+            workerThread.Abort();
         }
+
         private void refreshButtonStartup()
         {
             object a = rkApp.GetValue("MyApp");
@@ -40,9 +63,6 @@ namespace AggiornaSoftware
 
         private void RefreshForm_Load(object sender, EventArgs e)
         {
-            //Controller.refresh();
-
-            //refreshData();
 
             if (System.Environment.UserName == "edgesuser") {
                 btnRefreshSoluzione.Enabled = true;
@@ -57,8 +77,20 @@ namespace AggiornaSoftware
 
         private void aggiorna()
         {
-            AggiornoStatoPlugins(Controller.controlloStatoSoftware());
-            AggiornoStatoPluginsInstallati(Controller.controlloStatoSoftware());
+            // ? Riferimenti ai plugin
+            Dictionary<string, string> data = Controller.controlloStatoSoftware();
+
+            // ? Aggiorno in grid lo stato dei plugin
+            AggiornoStatoPlugins(data);
+
+            // ? Aggiorno in grid stato plugin installati
+            AggiornoStatoPluginsInstallati(data);
+        }
+
+        private void frmLoadingShowing()
+        {
+            frmLoading fl = new frmLoading();
+            fl.ShowDialog();
         }
 
         private void AggiornoStatoPluginsInstallati(Dictionary<string, string> dictionaries)
@@ -241,14 +273,23 @@ namespace AggiornaSoftware
 
         private void btnInstall_Click(object sender, EventArgs e)
         {
-            Controller.InstallaPlugins(Controller.controlloStatoSoftware());
+            toolStripProgressBar1.Maximum = 2;
+            toolStripProgressBar1.Value = 0;
+            toolStripProgressBar1.Value = 1;
+            Controller.InstallaPlugins(Controller.controlloStatoSoftware(), m_db);
+            toolStripProgressBar1.Value = 2;
             aggiorna();
         }
 
         private void btnDisinstall_Click(object sender, EventArgs e)
         {
-            Controller.DisinstallaPlugins(Controller.controlloStatoSoftware());
+            Controller.DisinstallaPlugins(Controller.controlloStatoSoftware(), m_db);
             aggiorna();
+        }
+
+        private void RefreshForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            m_db.Close();
         }
     }
 }
